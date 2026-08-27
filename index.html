@@ -151,7 +151,10 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
 .rli{padding:9px 11px;border-radius:3px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .rli-n{font-weight:600;font-size:13px;}
 .rli-d{font-size:11px;margin-top:2px;opacity:.75;}
+.rli-actions{display:flex;gap:2px;flex-shrink:0;}
 .rli-del{background:none;border:none;font-size:14px;cursor:pointer;opacity:.45;transition:opacity .15s;padding:2px 4px;}
+.rli-edit{background:none;border:none;font-size:14px;cursor:pointer;opacity:.45;transition:opacity .15s;padding:2px 4px;}
+.rli-del:hover,.rli-edit:hover{opacity:.9;}
 .rli-del:hover{opacity:.9;}
 .no-resa{font-size:12px;color:var(--gris);font-style:italic;padding:3px 0 7px;}
 
@@ -314,7 +317,7 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
           <select class="fsel" id="f-ch" onchange="checkCh()">
             <option value="">—</option>
             <option>1</option><option>2</option><option>3</option><option>4</option>
-            <option>5</option><option>6</option><option>6</option>
+            <option>5</option><option>6</option>
           </select>
         </div>
         <div class="field">
@@ -335,7 +338,7 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
       </div>
       <div class="mfoot">
         <button class="mfb mfb-c" onclick="closeModal()">Annuler</button>
-        <button class="mfb mfb-ok" onclick="submitResa()">✓ Valider</button>
+        <button class="mfb mfb-ok" id="mfb-submit" onclick="submitResa()">✓ Valider</button>
       </div>
     </div>
   </div>
@@ -354,7 +357,9 @@ const JOURS = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'
 let resas = {}; // key(YYYY-MM-DD) -> [resa objects]
 let mois = new Date().getMonth(), annee = new Date().getFullYear();
 let selA = null, selB = null, selStep = 0, hov = null;
+const canHover = window.matchMedia('(hover: hover)').matches;
 let typeChoisi = null;
+let editingId = null;
 let unsub = null;
 
 // ── UTILS DATES ──
@@ -468,7 +473,7 @@ function handleClick(k){
     document.getElementById('v-sel').textContent=frShort(k);
     document.getElementById('s-sel').textContent='Cliquez sur la date de fin';
     document.getElementById('hint-txt').textContent=`Début : ${frLong(k)}. Cliquez maintenant sur la date de fin (peut être le même jour).`;
-    renderCal();
+    updateSelectionClasses();
   } else if(selStep===1){
     const a=kd(selA),b=kd(k);
     if(+b<+a){selB=selA;selA=k;}else{selB=k;}
@@ -477,11 +482,33 @@ function handleClick(k){
     document.getElementById('v-sel').textContent=`${frShort(selA)} → ${frShort(selB)}`;
     document.getElementById('s-sel').textContent=`${nb} jour(s)`;
     document.getElementById('hint-txt').textContent=`${frLong(selA)} au ${frLong(selB)} — ${nb} jour(s).`;
-    renderCal();
+    updateSelectionClasses();
     openModal();
   }
 }
-function handleHover(k){ if(selStep===1){hov=k;renderCal();} }
+function handleHover(k){ if(selStep===1){hov=k;updateSelectionClasses();} }
+
+// Met à jour uniquement les classes de surbrillance des cases déjà présentes
+// dans le DOM, sans jamais détruire/recréer les éléments — c'est ce qui évite
+// à Safari (Mac et iPhone) d'annuler le clic en cours sur la case ciblée.
+function updateSelectionClasses(){
+  let hovA=null,hovB=null;
+  if(selStep===1&&selA&&hov){
+    const a=kd(selA),b=kd(hov);
+    hovA=dk(a<b?a:b); hovB=dk(a<b?b:a);
+  }
+  const selKeys=selA&&selB?new Set(between(selA,selB)):new Set();
+  const hovKeys=hovA&&hovB?new Set(between(hovA,hovB)):new Set();
+  document.querySelectorAll('#cal-body .jcell').forEach(cell=>{
+    const k=cell.dataset.k;
+    cell.classList.remove('sel-bound','in-sel');
+    const isBound=(k===selA||k===selB);
+    const inSel=selKeys.has(k)&&!isBound;
+    const inHov=hovKeys.has(k);
+    if(isBound)cell.classList.add('sel-bound');
+    else if(inSel||inHov)cell.classList.add('in-sel');
+  });
+}
 
 // ── RENDER CALENDRIER ──
 window.changeMois=function(d){ mois+=d; if(mois>11){mois=0;annee++;} if(mois<0){mois=11;annee--;} renderCal(); };
@@ -529,7 +556,8 @@ function renderCal(){
     dayResas.forEach(r=>{
       const cl=r.type==='reserve'?'p-r':r.type==='present'?'p-p':'p-i';
       const em=r.type==='reserve'?'🔴':r.type==='present'?'🟢':'🟡';
-      html+=`<div class="pill ${cl}">${em} ${r.nom}${r.chambres?' ·'+r.chambres+'ch':''}</div>`;
+      const tip=r.note?` title="${r.note.replace(/"/g,'&quot;')}"`:'';
+      html+=`<div class="pill ${cl}"${tip}>${em} ${r.nom}${r.chambres?' ·'+r.chambres+'ch':''}</div>`;
     });
     html+='</div>';
 
@@ -537,7 +565,7 @@ function renderCal(){
     td.innerHTML=html;
     const cell=td.querySelector('.jcell');
     cell.addEventListener('click',()=>handleClick(k));
-    cell.addEventListener('mouseenter',()=>handleHover(k));
+    if(canHover) cell.addEventListener('mouseenter',()=>handleHover(k));
     row.push(td);
 
     if(row.length===7){
@@ -556,7 +584,7 @@ function renderCal(){
       td.innerHTML=`<div class="jcell autremois" data-k="${k}"><span class="jnum">${d.getDate()}</span></div>`;
       const cell=td.querySelector('.jcell');
       cell.addEventListener('click',()=>handleClick(k));
-      cell.addEventListener('mouseenter',()=>handleHover(k));
+      if(canHover) cell.addEventListener('mouseenter',()=>handleHover(k));
       row.push(td); d.setDate(d.getDate()+1);
     }
     const tr=document.createElement('tr');
@@ -581,6 +609,8 @@ function openModal(){
   }
   renderResasModal();
   typeChoisi=null;
+  editingId=null;
+  document.getElementById('mfb-submit').textContent='✓ Valider';
   ['tb-r','tb-p','tb-i'].forEach(id=>document.getElementById(id).classList.remove('sel'));
   ['f-nom','f-note'].forEach(id=>document.getElementById(id).value='');
   ['f-ch','f-pers'].forEach(id=>document.getElementById(id).value='');
@@ -611,12 +641,19 @@ function renderResasModal(){
     if(r.chambres)det+=` · ${r.chambres} ch.`;
     if(r.personnes)det+=` · ${r.personnes} pers.`;
     if(r.note)det+=` · "${r.note}"`;
-    html+=`<div class="rli ${cl}"><div><div class="rli-n">${em} ${r.nom}</div><div class="rli-d">${det}</div></div><button class="rli-del" onclick="delResa('${r.id}')">🗑</button></div>`;
+    html+=`<div class="rli ${cl}"><div><div class="rli-n">${em} ${r.nom}</div><div class="rli-d">${det}</div></div><div class="rli-actions"><button class="rli-edit" onclick="editResa('${r.id}')">✏️</button><button class="rli-del" onclick="delResa('${r.id}')">🗑</button></div></div>`;
   });
   cont.innerHTML=html;
 }
+function findResaById(id){
+  for(const k in resas){
+    const found=(resas[k]||[]).find(r=>r.id===id);
+    if(found) return found;
+  }
+  return null;
+}
 
-window.closeModal=function(){ document.getElementById('mov').classList.remove('open'); resetSel(); renderCal(); };
+window.closeModal=function(){ document.getElementById('mov').classList.remove('open'); editingId=null; resetSel(); renderCal(); };
 window.closeIfOv=function(e){ if(e.target===document.getElementById('mov')) closeModal(); };
 
 window.selType=function(t){
@@ -636,22 +673,41 @@ window.checkCh=function(){
   document.getElementById('chw').style.display=exc?'block':'none';
 };
 
+window.editResa=function(id){
+  const r=findResaById(id);
+  if(!r) return;
+  selA=r.debut; selB=r.fin; selStep=2; hov=null;
+  updateSelectionClasses();
+  openModal();
+  editingId=id;
+  typeChoisi=r.type;
+  document.getElementById('mfb-submit').textContent='✓ Modifier';
+  const map={reserve:'tb-r',present:'tb-p',interesse:'tb-i'};
+  document.getElementById(map[r.type]).classList.add('sel');
+  document.getElementById('f-nom').value=r.nom||'';
+  document.getElementById('f-ch').value=r.chambres||'';
+  document.getElementById('f-pers').value=r.personnes||'';
+  document.getElementById('f-note').value=r.note||'';
+  checkCh();
+};
+
 window.submitResa=async function(){
   if(!typeChoisi){toast('Choisissez un type de présence.');return;}
   const nom=document.getElementById('f-nom').value.trim();
   if(!nom){toast('Entrez votre prénom.');return;}
   const fin=selB||selA;
+  const original=editingId?findResaById(editingId):null;
   const obj={
-    id:`r_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+    id:editingId||`r_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
     type:typeChoisi, nom,
     chambres:document.getElementById('f-ch').value||'',
     personnes:document.getElementById('f-pers').value||'',
     note:document.getElementById('f-note').value.trim(),
     debut:selA, fin:fin,
-    createdAt:new Date().toISOString()
+    createdAt:original?original.createdAt:new Date().toISOString()
   };
   const ok=await saveResa(obj);
-  if(ok){ toast('✓ Réservation enregistrée !'); closeModal(); }
+  if(ok){ toast(editingId?'✓ Réservation modifiée !':'✓ Réservation enregistrée !'); editingId=null; closeModal(); }
 };
 
 // ── TOAST ──
