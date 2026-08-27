@@ -70,6 +70,11 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
 .lbtn{width:100%;margin-top:30px;padding:14px;background:var(--olive-dk);color:var(--blanc);border:none;border-radius:2px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:background .2s;}
 .lbtn:hover{background:var(--olive);}
 .lerr{margin-top:12px;text-align:center;font-size:12.5px;color:var(--rouge);font-weight:500;display:none;}
+.lpwrap{position:relative;}
+.lpwrap .linp{padding-right:44px;}
+.lpeye{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;opacity:.5;padding:8px;line-height:1;transition:opacity .15s;}
+.lpeye:hover{opacity:.9;}
+.lpeye.on{opacity:1;}
 
 /* ── HEADER ── */
 #page-cal{display:none;min-height:100vh;}
@@ -205,7 +210,10 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
     <h1 class="ltit">La Villa<br>Des Ailantes</h1>
     <p class="lstit">Espace famille</p>
     <label class="llbl" for="lp">Mot de passe</label>
-    <input class="linp" type="password" id="lp" autocomplete="current-password" placeholder="••••••••••">
+    <div class="lpwrap">
+      <input class="linp" type="password" id="lp" autocomplete="current-password" placeholder="••••••••••">
+      <button type="button" class="lpeye" id="lpeye" onclick="togglePw()" aria-label="Afficher le mot de passe">👁</button>
+    </div>
     <p class="lerr" id="lerr">Mot de passe incorrect.</p>
     <button class="lbtn" onclick="tryLogin()">Accéder au calendrier</button>
   </div>
@@ -414,6 +422,15 @@ function showLoginError(){
   document.getElementById('lp').value='';
   setTimeout(()=>e.style.display='none',3000);
 }
+
+window.togglePw=function(){
+  const inp=document.getElementById('lp'), btn=document.getElementById('lpeye');
+  const show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.classList.toggle('on',show);
+  btn.textContent=show?'🙈':'👁';
+  btn.setAttribute('aria-label',show?'Masquer le mot de passe':'Afficher le mot de passe');
+};
 
 window.tryLogin=async function(){
   const pw=document.getElementById('lp').value;
