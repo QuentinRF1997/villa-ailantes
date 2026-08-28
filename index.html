@@ -118,7 +118,7 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
 .cal thead th{background:var(--olive-dk);color:var(--blanc);font-size:10.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:12px 5px;text-align:center;}
 .cal tbody td{border:1px solid #E8E0D0;vertical-align:top;padding:0;}
 
-.jcell{min-height:106px;padding:6px 7px;cursor:pointer;transition:background .12s;position:relative;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.jcell{min-height:106px;padding:6px 0 8px;cursor:pointer;transition:background .12s;position:relative;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 .jcell:hover{background:var(--beige);}
 .jcell.autremois{background:#FAFAF7;}
 .jcell.autremois .jnum{opacity:.3;}
@@ -126,13 +126,24 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
 .jcell.in-sel{background:var(--sel-bg)!important;}
 .jcell.sel-bound{background:var(--sel-strong)!important;outline:2px solid var(--olive);outline-offset:-2px;}
 
-.jnum{font-size:12.5px;font-weight:600;color:var(--texte);margin-bottom:4px;display:inline-flex;align-items:center;justify-content:center;min-width:22px;min-height:22px;}
+.jnum{font-size:12.5px;font-weight:600;color:var(--texte);margin-bottom:4px;display:inline-flex;align-items:center;justify-content:center;min-width:22px;min-height:22px;margin-left:7px;}
 .ch-badge{position:absolute;top:5px;right:6px;font-size:9.5px;color:var(--gris);font-weight:500;}
 
-.pill{border-radius:2px;padding:2px 5px;margin-bottom:2px;font-size:10.5px;font-weight:500;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-.p-r{background:var(--rouge-bg);color:var(--rouge-tx);border-left:3px solid var(--rouge);}
-.p-p{background:var(--vert-bg);color:var(--vert-tx);border-left:3px solid var(--vert);}
-.p-i{background:var(--jaune-bg);color:var(--jaune-tx);border-left:3px solid var(--jaune);}
+/* Barres de nuitée : chaque réservation forme une barre continue qui
+   démarre à mi-case le jour d'arrivée et se termine à mi-case le jour
+   de départ, en traversant les cases intermédiaires sur toute leur largeur. */
+.nbar{height:16px;line-height:16px;margin-bottom:2px;padding:0 6px;font-size:10px;font-weight:600;
+  overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;box-sizing:border-box;
+  color:#fff;transition:filter .12s;}
+.nbar:hover{filter:brightness(1.08);}
+.nbar-arr{width:50%;margin-left:50%;border-radius:8px 0 0 8px;padding-left:8px;}
+.nbar-dep{width:50%;margin-left:0;border-radius:0 8px 8px 0;}
+.nbar-mid{width:100%;margin-left:0;border-radius:0;}
+.nbar-full{width:calc(100% - 8px);margin-left:4px;border-radius:8px;}
+.nb-r{background:var(--rouge);}
+.nb-p{background:var(--vert);}
+.nb-i{background:var(--jaune);color:#5a3d00;}
+.nbar-note{opacity:.85;font-weight:400;}
 
 /* ── MODAL ── */
 .mov{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:200;display:none;align-items:center;justify-content:center;padding:14px;}
@@ -149,6 +160,9 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
 .stit:first-child{border-top:none;padding-top:0;}
 
 .rli{padding:9px 11px;border-radius:3px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.rli.p-r{background:var(--rouge-bg);color:var(--rouge-tx);border-left:3px solid var(--rouge);}
+.rli.p-p{background:var(--vert-bg);color:var(--vert-tx);border-left:3px solid var(--vert);}
+.rli.p-i{background:var(--jaune-bg);color:var(--jaune-tx);border-left:3px solid var(--jaune);}
 .rli-n{font-weight:600;font-size:13px;}
 .rli-d{font-size:11px;margin-top:2px;opacity:.75;}
 .rli-actions{display:flex;gap:2px;flex-shrink:0;}
@@ -265,11 +279,12 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
       <div class="leg-item"><div class="leg-dot" style="background:var(--rouge);"></div>Réservé — accord requis</div>
       <div class="leg-item"><div class="leg-dot" style="background:var(--vert);"></div>Présent·e — cohabitation OK</div>
       <div class="leg-item"><div class="leg-dot" style="background:var(--jaune);"></div>Intéressé·e — à confirmer</div>
+      <span style="font-size:11.5px;color:var(--gris);font-style:italic;">— chaque barre va du soir d'arrivée au matin du départ ; seules les nuitées comptent dans les chambres disponibles</span>
     </div>
 
     <div class="hint">
       <span style="font-size:16px;">👆</span>
-      <span id="hint-txt">Cliquez sur un jour de début, puis sur un jour de fin pour définir votre période.</span>
+      <span id="hint-txt">Cliquez sur le jour d'arrivée, puis sur le jour de départ pour définir un séjour. Cliquez directement sur une réservation pour la modifier.</span>
     </div>
 
     <table class="cal">
@@ -331,7 +346,7 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
         </div>
       </div>
       <div class="chav" id="chav"></div>
-      <div class="chw" id="chw">⚠️ Le nombre de chambres dépasse les disponibilités sur certains jours.</div>
+      <div class="chw" id="chw">⚠️ Le nombre de chambres dépasse les disponibilités sur certaines nuitées.</div>
       <div class="field" style="margin-top:10px;">
         <label class="flbl" for="f-note">Note (optionnel)</label>
         <input class="finp" type="text" id="f-note" placeholder="ex : On arrive vendredi soir…">
@@ -372,6 +387,27 @@ function between(a,b){
   const fin=new Date(Math.max(+kd(a),+kd(b)));
   while(d<=fin){keys.push(dk(d));d.setDate(d.getDate()+1);}
   return keys;
+}
+// ── LOGIQUE "NUITÉE" ──
+// Une réservation va d'une date d'arrivée (debut) à une date de départ (fin,
+// exclusive) : la chambre n'est occupée QUE pour les nuits entre les deux,
+// jamais pour le jour de départ lui-même (la chambre est libérée ce jour-là).
+// Cas particulier : debut===fin représente un simple événement ponctuel
+// (une seule journée, sans notion de nuitée), conservé pour compatibilité.
+function nights(a,b){
+  if(a===b) return [a];
+  const all=between(a,b);
+  all.pop(); // on retire le jour de départ : il ne compte pas comme une nuitée
+  return all;
+}
+function occupiesDay(r,k){
+  return (r.debut===r.fin) ? (k===r.debut) : (k>=r.debut && k<r.fin);
+}
+function chambresOccupees(k,excludeId){
+  return (resas[k]||[]).reduce((s,r)=>{
+    if(excludeId && r.id===excludeId) return s;
+    return s + (occupiesDay(r,k) ? (parseInt(r.chambres)||0) : 0);
+  },0);
 }
 
 // ── FIREBASE ──
@@ -464,24 +500,30 @@ window.doLogout=function(){
 function resetSel(){
   selA=null;selB=null;selStep=0;hov=null;
   document.getElementById('card-sel').style.display='none';
-  document.getElementById('hint-txt').textContent='Cliquez sur un jour de début, puis sur un jour de fin pour définir votre période.';
+  document.getElementById('hint-txt').textContent="Cliquez sur le jour d'arrivée, puis sur le jour de départ pour définir un séjour. Cliquez directement sur une réservation pour la modifier.";
+}
+// Libellé "X nuitée(s)" (ou "1 jour" pour un événement ponctuel sans nuitée)
+function dureeLabel(a,b){
+  if(a===b) return '1 jour';
+  const n=nights(a,b).length;
+  return `${n} nuitée${n>1?'s':''}`;
 }
 function handleClick(k){
   if(selStep===0||selStep===2){
     selA=k;selB=null;selStep=1;hov=null;
     document.getElementById('card-sel').style.display='';
     document.getElementById('v-sel').textContent=frShort(k);
-    document.getElementById('s-sel').textContent='Cliquez sur la date de fin';
-    document.getElementById('hint-txt').textContent=`Début : ${frLong(k)}. Cliquez maintenant sur la date de fin (peut être le même jour).`;
+    document.getElementById('s-sel').textContent='Cliquez sur le jour de départ';
+    document.getElementById('hint-txt').textContent=`Arrivée : ${frLong(k)}. Cliquez maintenant sur le jour de départ (peut être le même jour pour un événement ponctuel).`;
     updateSelectionClasses();
   } else if(selStep===1){
     const a=kd(selA),b=kd(k);
     if(+b<+a){selB=selA;selA=k;}else{selB=k;}
     selStep=2;
-    const nb=between(selA,selB).length;
+    const lbl=dureeLabel(selA,selB);
     document.getElementById('v-sel').textContent=`${frShort(selA)} → ${frShort(selB)}`;
-    document.getElementById('s-sel').textContent=`${nb} jour(s)`;
-    document.getElementById('hint-txt').textContent=`${frLong(selA)} au ${frLong(selB)} — ${nb} jour(s).`;
+    document.getElementById('s-sel').textContent=lbl;
+    document.getElementById('hint-txt').textContent=`Arrivée le ${frLong(selA)}, départ le ${frLong(selB)} — ${lbl}.`;
     updateSelectionClasses();
     openModal();
   }
@@ -536,7 +578,7 @@ function renderCal(){
   while(d<=dernier||row.length>0){
     const k=dk(d), estMois=d.getMonth()===mois;
     const dayResas=resas[k]||[];
-    const chOcc=dayResas.reduce((s,r)=>s+(parseInt(r.chambres)||0),0);
+    const chOcc=chambresOccupees(k);
     if(estMois) minD=Math.min(minD,TOTAL-chOcc);
 
     let cls='jcell';
@@ -553,11 +595,21 @@ function renderCal(){
     if(estMois&&dayResas.length>0){
       html+=`<span class="ch-badge">${TOTAL-chOcc}/${TOTAL}</span>`;
     }
-    dayResas.forEach(r=>{
-      const cl=r.type==='reserve'?'p-r':r.type==='present'?'p-p':'p-i';
+    // Trie stable (arrivée puis id) pour que chaque réservation garde autant
+    // que possible la même ligne verticale d'un jour à l'autre : c'est ce qui
+    // donne l'impression d'une seule barre continue traversant les cases.
+    const sorted=[...dayResas].sort((a,b)=> a.debut<b.debut?-1:a.debut>b.debut?1:(a.id<b.id?-1:1));
+    sorted.forEach(r=>{
+      const nb=r.type==='reserve'?'nb-r':r.type==='present'?'nb-p':'nb-i';
       const em=r.type==='reserve'?'🔴':r.type==='present'?'🟢':'🟡';
-      const tip=r.note?` title="${r.note.replace(/"/g,'&quot;')}"`:'';
-      html+=`<div class="pill ${cl}"${tip}>${em} ${r.nom}${r.chambres?' ·'+r.chambres+'ch':''}</div>`;
+      let seg='nbar-full';
+      if(r.debut!==r.fin){
+        seg = (k===r.debut) ? 'nbar-arr' : (k===r.fin) ? 'nbar-dep' : 'nbar-mid';
+      }
+      const noteTxt=r.note?` <span class="nbar-note">· ${r.note.replace(/</g,'&lt;')}</span>`:'';
+      const tipParts=[r.nom, r.chambres?`${r.chambres} ch.`:'', r.personnes?`${r.personnes} pers.`:'', r.note||''].filter(Boolean);
+      const tip=` title="${tipParts.join(' · ').replace(/"/g,'&quot;')}"`;
+      html+=`<div class="nbar ${nb} ${seg}"${tip} onclick="event.stopPropagation();editResa('${r.id}')">${em} ${r.nom}${noteTxt}</div>`;
     });
     html+='</div>';
 
@@ -601,11 +653,11 @@ function openModal(){
   const fin=selB||selA;
   if(selA===fin){
     document.getElementById('m-t').textContent=frLong(selA);
-    document.getElementById('m-s').textContent='1 jour sélectionné';
+    document.getElementById('m-s').textContent='Événement ponctuel (1 jour, sans nuitée)';
   } else {
-    const nb=between(selA,fin).length;
+    const nb=nights(selA,fin).length;
     document.getElementById('m-t').textContent=`${frShort(selA)} → ${frShort(fin)}`;
-    document.getElementById('m-s').textContent=`${nb} jour(s) · du ${frLong(selA)} au ${frLong(fin)}`;
+    document.getElementById('m-s').textContent=`${nb} nuitée${nb>1?'s':''} · arrivée le ${frLong(selA)}, départ le ${frLong(fin)}`;
   }
   renderResasModal();
   typeChoisi=null;
@@ -621,14 +673,16 @@ function openModal(){
 
 function renderResasModal(){
   const fin=selB||selA;
-  const keys=between(selA,fin);
+  const keys=between(selA,fin); // pour lister toutes les réservations touchant la période (y compris départ)
+  const nKeys=nights(selA,fin); // pour le calcul de disponibilité : nuitées uniquement
   const seen=new Set(), all=[];
   keys.forEach(k=>(resas[k]||[]).forEach(r=>{ if(!seen.has(r.id)){seen.add(r.id);all.push(r);} }));
 
   let maxOcc=0;
-  keys.forEach(k=>{ const o=(resas[k]||[]).reduce((s,r)=>s+(parseInt(r.chambres)||0),0); maxOcc=Math.max(maxOcc,o); });
+  nKeys.forEach(k=>{ const o=chambresOccupees(k,editingId); maxOcc=Math.max(maxOcc,o); });
   const minD=TOTAL-maxOcc;
-  document.getElementById('chav').textContent=`Chambres disponibles sur la période : ${minD} / ${TOTAL}`;
+  const label=selA===fin?'ce jour':'ces nuitées';
+  document.getElementById('chav').textContent=`Chambres disponibles pour ${label} : ${minD} / ${TOTAL}`;
 
   const cont=document.getElementById('m-resas');
   if(!all.length){ cont.innerHTML='<div class="no-resa">Aucune réservation sur cette période.</div>'; return; }
@@ -637,7 +691,7 @@ function renderResasModal(){
     const cl=r.type==='reserve'?'p-r':r.type==='present'?'p-p':'p-i';
     const em=r.type==='reserve'?'🔴':r.type==='present'?'🟢':'🟡';
     const lbl=r.type==='reserve'?'Réservé':r.type==='present'?'Présent·e':'Intéressé·e';
-    let det=`${lbl} · ${frShort(r.debut)} → ${frShort(r.fin)}`;
+    let det=`${lbl} · ${frShort(r.debut)} → ${frShort(r.fin)} · ${dureeLabel(r.debut,r.fin)}`;
     if(r.chambres)det+=` · ${r.chambres} ch.`;
     if(r.personnes)det+=` · ${r.personnes} pers.`;
     if(r.note)det+=` · "${r.note}"`;
@@ -667,9 +721,9 @@ window.checkCh=function(){
   const ch=parseInt(document.getElementById('f-ch').value)||0;
   if(!ch){document.getElementById('chw').style.display='none';return;}
   const fin=selB||selA;
-  const keys=between(selA,fin);
+  const keys=nights(selA,fin);
   let exc=false;
-  keys.forEach(k=>{ const o=(resas[k]||[]).reduce((s,r)=>s+(parseInt(r.chambres)||0),0); if(o+ch>TOTAL)exc=true; });
+  keys.forEach(k=>{ const o=chambresOccupees(k,editingId); if(o+ch>TOTAL)exc=true; });
   document.getElementById('chw').style.display=exc?'block':'none';
 };
 
