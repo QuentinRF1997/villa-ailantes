@@ -144,6 +144,7 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
 .nb-p{background:var(--vert);}
 .nb-i{background:var(--jaune);color:#5a3d00;}
 .nbar-note{opacity:.85;font-weight:400;}
+.nbar-spacer{height:16px;margin-bottom:2px;}
 
 /* ── MODAL ── */
 .mov{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:200;display:none;align-items:center;justify-content:center;padding:14px;}
@@ -611,6 +612,35 @@ function updateSelectionClasses(){
 
 // ── RENDER CALENDRIER ──
 window.changeMois=function(d){ mois+=d; if(mois>11){mois=0;annee++;} if(mois<0){mois=11;annee--;} renderCal(); };
+// ── COULOIRS (LANES) STABLES ──
+// Attribue à chaque réservation une "ligne" (lane) fixe, valable sur toute la
+// période affichée, afin que sa barre reste toujours à la même hauteur d'un
+// jour à l'autre. Deux réservations qui ne se chevauchent pas (ex : l'une
+// part le jour même où l'autre arrive) peuvent partager la même ligne — ce
+// qui aligne naturellement une barre de départ et une barre d'arrivée lors
+// d'une journée de transition.
+function nextDay(k){ const d=kd(k); d.setDate(d.getDate()+1); return dk(d); }
+function seChevauchent(a,b){
+  const aFin = a.debut===a.fin ? nextDay(a.debut) : a.fin;
+  const bFin = b.debut===b.fin ? nextDay(b.debut) : b.fin;
+  return a.debut<bFin && b.debut<aFin;
+}
+function computeLanes(){
+  const seen=new Set(), list=[];
+  for(const k in resas){
+    (resas[k]||[]).forEach(r=>{ if(!seen.has(r.id)){seen.add(r.id);list.push(r);} });
+  }
+  list.sort((a,b)=> a.debut<b.debut?-1:a.debut>b.debut?1:(a.id<b.id?-1:1));
+  const laneOccupant=[], laneOf={};
+  list.forEach(r=>{
+    let lane=0;
+    while(laneOccupant[lane] && seChevauchent(laneOccupant[lane],r)) lane++;
+    laneOccupant[lane]=r;
+    laneOf[r.id]=lane;
+  });
+  return laneOf;
+}
+
 function renderCal(){
   document.getElementById('nav-t').textContent=`${MOIS[mois]} ${annee}`;
   const today=dk(new Date()), tbody=document.getElementById('cal-body');
@@ -631,6 +661,7 @@ function renderCal(){
 
   const start=new Date(premier); start.setDate(start.getDate()-off);
   let d=new Date(start), rows=[], row=[];
+  const laneOf=computeLanes();
 
   while(d<=dernier||row.length>0){
     const k=dk(d), estMois=d.getMonth()===mois;
@@ -652,11 +683,15 @@ function renderCal(){
     if(estMois&&dayResas.length>0){
       html+=`<span class="ch-badge">${TOTAL-chOcc}/${TOTAL}</span>`;
     }
-    // Trie stable (arrivée puis id) pour que chaque réservation garde autant
-    // que possible la même ligne verticale d'un jour à l'autre : c'est ce qui
-    // donne l'impression d'une seule barre continue traversant les cases.
-    const sorted=[...dayResas].sort((a,b)=> a.debut<b.debut?-1:a.debut>b.debut?1:(a.id<b.id?-1:1));
-    sorted.forEach(r=>{
+    // Chaque réservation occupe toujours la même ligne (lane) que les autres
+    // jours : on rend une case vide (spacer) pour les lignes inoccupées ce
+    // jour-là, afin que rien ne "saute" verticalement d'un jour à l'autre.
+    const parLane={};
+    dayResas.forEach(r=>{ parLane[laneOf[r.id]]=r; });
+    const maxLane = dayResas.length ? Math.max(...dayResas.map(r=>laneOf[r.id])) : -1;
+    for(let lane=0; lane<=maxLane; lane++){
+      const r=parLane[lane];
+      if(!r){ html+='<div class="nbar-spacer"></div>'; continue; }
       const nb=r.type==='reserve'?'nb-r':r.type==='present'?'nb-p':'nb-i';
       const em=r.type==='reserve'?'🔴':r.type==='present'?'🟢':'🟡';
       let seg='nbar-full';
@@ -670,7 +705,7 @@ function renderCal(){
       const tipParts=[r.nom, r.chambres?`${r.chambres} ch.`:'', r.personnes?`${r.personnes} pers.`:'', r.note||''].filter(Boolean);
       const tip=` title="${tipParts.join(' · ').replace(/"/g,'&quot;')}"`;
       html+=`<div class="nbar ${nb} ${seg}"${tip} onclick="event.stopPropagation();openDetail('${r.id}')">${em} ${r.nom}${noteTxt}</div>`;
-    });
+    }
     html+='</div>';
 
     const td=document.createElement('td');
