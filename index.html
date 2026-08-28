@@ -114,11 +114,11 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
 .hint{background:#EBF5FB;border:1px solid #AED6F1;border-radius:3px;padding:10px 15px;margin-bottom:14px;font-size:12.5px;color:#1A5276;display:flex;align-items:center;gap:9px;}
 
 /* ── CALENDRIER ── */
-.cal{width:100%;border-collapse:collapse;background:white;border-radius:3px;overflow:hidden;box-shadow:0 2px 14px var(--ombre);}
+.cal{width:100%;table-layout:fixed;border-collapse:collapse;background:white;border-radius:3px;overflow:hidden;box-shadow:0 2px 14px var(--ombre);}
 .cal thead th{background:var(--olive-dk);color:var(--blanc);font-size:10.5px;font-weight:600;letter-spacing:2px;text-transform:uppercase;padding:12px 5px;text-align:center;}
 .cal tbody td{border:1px solid #E8E0D0;vertical-align:top;padding:0;}
 
-.jcell{min-height:106px;padding:6px 0 8px;cursor:pointer;transition:background .12s;position:relative;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+.jcell{min-height:106px;padding:6px 0 8px;cursor:pointer;transition:background .12s;position:relative;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;overflow:hidden;}
 .jcell:hover{background:var(--beige);}
 .jcell.autremois{background:#FAFAF7;}
 .jcell.autremois .jnum{opacity:.3;}
@@ -194,6 +194,7 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
 .mfb:hover{opacity:.82;}
 .mfb-c{background:var(--beige-dk);color:var(--texte);}
 .mfb-ok{background:var(--olive-dk);color:white;}
+.mfb-del{background:var(--rouge);color:white;flex:0 0 auto;padding:12px 16px;}
 
 /* ── LOADER / TOAST ── */
 .loader{position:fixed;inset:0;background:rgba(253,250,245,.93);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
@@ -359,6 +360,63 @@ body{font-family:'Inter',sans-serif;color:var(--texte);background:var(--beige);m
   </div>
 </div>
 
+<!-- MODAL DÉTAIL D'UNE RÉSERVATION EXISTANTE (distincte de l'ajout) -->
+<div class="mov" id="movD" onclick="closeIfOvD(event)">
+  <div class="modal">
+    <div class="mhd">
+      <div>
+        <div class="mhd-t" id="d-t">Réservation</div>
+        <div class="mhd-s" id="d-s"></div>
+      </div>
+      <button class="mx" onclick="closeDetail()">×</button>
+    </div>
+    <div class="mbody">
+      <div class="field">
+        <div class="flbl">Type de présence</div>
+        <div class="tgrid">
+          <button class="tbtn tr" id="d-tb-r" onclick="selTypeD('reserve')">🔴 Réservé<br><span style="font-weight:400;font-size:10px;">accord requis</span></button>
+          <button class="tbtn tp" id="d-tb-p" onclick="selTypeD('present')">🟢 Présent·e<br><span style="font-weight:400;font-size:10px;">cohabitation OK</span></button>
+          <button class="tbtn ti" id="d-tb-i" onclick="selTypeD('interesse')">🟡 Intéressé·e<br><span style="font-weight:400;font-size:10px;">à confirmer</span></button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="flbl" for="d-f-nom">Prénom</label>
+        <input class="finp" type="text" id="d-f-nom" placeholder="ex : Marie">
+      </div>
+      <div class="frow">
+        <div class="field">
+          <label class="flbl" for="d-f-ch">Chambres souhaitées</label>
+          <select class="fsel" id="d-f-ch" onchange="checkChD()">
+            <option value="">—</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="flbl" for="d-f-pers">Nombre de personnes</label>
+          <select class="fsel" id="d-f-pers">
+            <option value="">—</option>
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+            <option>6</option><option>7</option><option>8</option><option>9</option><option>10</option>
+            <option>11</option><option>12</option><option>13</option><option>14</option><option>15+</option>
+          </select>
+        </div>
+      </div>
+      <div class="chav" id="d-chav"></div>
+      <div class="chw" id="d-chw">⚠️ Le nombre de chambres dépasse les disponibilités sur certaines nuitées.</div>
+      <div class="field" style="margin-top:10px;">
+        <label class="flbl" for="d-f-note">Note (optionnel)</label>
+        <input class="finp" type="text" id="d-f-note" placeholder="ex : On arrive vendredi soir…">
+      </div>
+      <div class="mfoot">
+        <button class="mfb mfb-c" onclick="closeDetail()">Annuler</button>
+        <button class="mfb mfb-ok" onclick="submitDetailEdit()">✓ Modifier</button>
+        <button class="mfb mfb-del" onclick="deleteDetail()">🗑 Supprimer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 // ── CONFIG ──
 // "Email" fixe utilisé en coulisses par Firebase Auth (n'a pas besoin d'exister
@@ -374,7 +432,6 @@ let mois = new Date().getMonth(), annee = new Date().getFullYear();
 let selA = null, selB = null, selStep = 0, hov = null;
 const canHover = window.matchMedia('(hover: hover)').matches;
 let typeChoisi = null;
-let editingId = null;
 let unsub = null;
 
 // ── UTILS DATES ──
@@ -606,10 +663,13 @@ function renderCal(){
       if(r.debut!==r.fin){
         seg = (k===r.debut) ? 'nbar-arr' : (k===r.fin) ? 'nbar-dep' : 'nbar-mid';
       }
-      const noteTxt=r.note?` <span class="nbar-note">· ${r.note.replace(/</g,'&lt;')}</span>`:'';
+      // La note ne s'affiche qu'une seule fois, sur le tout premier segment de
+      // la barre (arrivée, ou case unique pour un événement ponctuel).
+      const showNote = r.note && (seg==='nbar-arr' || seg==='nbar-full');
+      const noteTxt = showNote ? ` <span class="nbar-note">· ${r.note.replace(/</g,'&lt;')}</span>` : '';
       const tipParts=[r.nom, r.chambres?`${r.chambres} ch.`:'', r.personnes?`${r.personnes} pers.`:'', r.note||''].filter(Boolean);
       const tip=` title="${tipParts.join(' · ').replace(/"/g,'&quot;')}"`;
-      html+=`<div class="nbar ${nb} ${seg}"${tip} onclick="event.stopPropagation();editResa('${r.id}')">${em} ${r.nom}${noteTxt}</div>`;
+      html+=`<div class="nbar ${nb} ${seg}"${tip} onclick="event.stopPropagation();openDetail('${r.id}')">${em} ${r.nom}${noteTxt}</div>`;
     });
     html+='</div>';
 
@@ -661,8 +721,6 @@ function openModal(){
   }
   renderResasModal();
   typeChoisi=null;
-  editingId=null;
-  document.getElementById('mfb-submit').textContent='✓ Valider';
   ['tb-r','tb-p','tb-i'].forEach(id=>document.getElementById(id).classList.remove('sel'));
   ['f-nom','f-note'].forEach(id=>document.getElementById(id).value='');
   ['f-ch','f-pers'].forEach(id=>document.getElementById(id).value='');
@@ -679,7 +737,7 @@ function renderResasModal(){
   keys.forEach(k=>(resas[k]||[]).forEach(r=>{ if(!seen.has(r.id)){seen.add(r.id);all.push(r);} }));
 
   let maxOcc=0;
-  nKeys.forEach(k=>{ const o=chambresOccupees(k,editingId); maxOcc=Math.max(maxOcc,o); });
+  nKeys.forEach(k=>{ const o=chambresOccupees(k); maxOcc=Math.max(maxOcc,o); });
   const minD=TOTAL-maxOcc;
   const label=selA===fin?'ce jour':'ces nuitées';
   document.getElementById('chav').textContent=`Chambres disponibles pour ${label} : ${minD} / ${TOTAL}`;
@@ -695,7 +753,7 @@ function renderResasModal(){
     if(r.chambres)det+=` · ${r.chambres} ch.`;
     if(r.personnes)det+=` · ${r.personnes} pers.`;
     if(r.note)det+=` · "${r.note}"`;
-    html+=`<div class="rli ${cl}"><div><div class="rli-n">${em} ${r.nom}</div><div class="rli-d">${det}</div></div><div class="rli-actions"><button class="rli-edit" onclick="editResa('${r.id}')">✏️</button><button class="rli-del" onclick="delResa('${r.id}')">🗑</button></div></div>`;
+    html+=`<div class="rli ${cl}"><div><div class="rli-n">${em} ${r.nom}</div><div class="rli-d">${det}</div></div><div class="rli-actions"><button class="rli-edit" onclick="openDetail('${r.id}')">✏️</button><button class="rli-del" onclick="delResa('${r.id}')">🗑</button></div></div>`;
   });
   cont.innerHTML=html;
 }
@@ -707,7 +765,7 @@ function findResaById(id){
   return null;
 }
 
-window.closeModal=function(){ document.getElementById('mov').classList.remove('open'); editingId=null; resetSel(); renderCal(); };
+window.closeModal=function(){ document.getElementById('mov').classList.remove('open'); resetSel(); renderCal(); };
 window.closeIfOv=function(e){ if(e.target===document.getElementById('mov')) closeModal(); };
 
 window.selType=function(t){
@@ -723,26 +781,8 @@ window.checkCh=function(){
   const fin=selB||selA;
   const keys=nights(selA,fin);
   let exc=false;
-  keys.forEach(k=>{ const o=chambresOccupees(k,editingId); if(o+ch>TOTAL)exc=true; });
+  keys.forEach(k=>{ const o=chambresOccupees(k); if(o+ch>TOTAL)exc=true; });
   document.getElementById('chw').style.display=exc?'block':'none';
-};
-
-window.editResa=function(id){
-  const r=findResaById(id);
-  if(!r) return;
-  selA=r.debut; selB=r.fin; selStep=2; hov=null;
-  updateSelectionClasses();
-  openModal();
-  editingId=id;
-  typeChoisi=r.type;
-  document.getElementById('mfb-submit').textContent='✓ Modifier';
-  const map={reserve:'tb-r',present:'tb-p',interesse:'tb-i'};
-  document.getElementById(map[r.type]).classList.add('sel');
-  document.getElementById('f-nom').value=r.nom||'';
-  document.getElementById('f-ch').value=r.chambres||'';
-  document.getElementById('f-pers').value=r.personnes||'';
-  document.getElementById('f-note').value=r.note||'';
-  checkCh();
 };
 
 window.submitResa=async function(){
@@ -750,18 +790,94 @@ window.submitResa=async function(){
   const nom=document.getElementById('f-nom').value.trim();
   if(!nom){toast('Entrez votre prénom.');return;}
   const fin=selB||selA;
-  const original=editingId?findResaById(editingId):null;
   const obj={
-    id:editingId||`r_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+    id:`r_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
     type:typeChoisi, nom,
     chambres:document.getElementById('f-ch').value||'',
     personnes:document.getElementById('f-pers').value||'',
     note:document.getElementById('f-note').value.trim(),
     debut:selA, fin:fin,
-    createdAt:original?original.createdAt:new Date().toISOString()
+    createdAt:new Date().toISOString()
   };
   const ok=await saveResa(obj);
-  if(ok){ toast(editingId?'✓ Réservation modifiée !':'✓ Réservation enregistrée !'); editingId=null; closeModal(); }
+  if(ok){ toast('✓ Réservation enregistrée !'); closeModal(); }
+};
+
+// ── MODAL DÉTAIL (réservation existante : modifier / supprimer) ──
+// Fenêtre totalement distincte de l'ajout, ouverte uniquement en cliquant
+// directement sur une réservation (dans le calendrier ou dans la liste).
+let detailId = null;
+let typeChoisiD = null;
+
+window.openDetail=function(id){
+  const r=findResaById(id);
+  if(!r) return;
+  detailId=id;
+  typeChoisiD=r.type;
+  document.getElementById('d-t').textContent=r.nom;
+  document.getElementById('d-s').textContent = r.debut===r.fin
+    ? `${frLong(r.debut)} · événement ponctuel`
+    : `${frLong(r.debut)} → ${frLong(r.fin)} · ${dureeLabel(r.debut,r.fin)}`;
+  ['d-tb-r','d-tb-p','d-tb-i'].forEach(id2=>document.getElementById(id2).classList.remove('sel'));
+  const map={reserve:'d-tb-r',present:'d-tb-p',interesse:'d-tb-i'};
+  document.getElementById(map[r.type]).classList.add('sel');
+  document.getElementById('d-f-nom').value=r.nom||'';
+  document.getElementById('d-f-ch').value=r.chambres||'';
+  document.getElementById('d-f-pers').value=r.personnes||'';
+  document.getElementById('d-f-note').value=r.note||'';
+  document.getElementById('d-chw').style.display='none';
+  checkChD();
+  document.getElementById('mov').classList.remove('open'); // au cas où on vient de la liste
+  document.getElementById('movD').classList.add('open');
+};
+
+window.selTypeD=function(t){
+  typeChoisiD=t;
+  ['d-tb-r','d-tb-p','d-tb-i'].forEach(id=>document.getElementById(id).classList.remove('sel'));
+  const map={reserve:'d-tb-r',present:'d-tb-p',interesse:'d-tb-i'};
+  document.getElementById(map[t]).classList.add('sel');
+  checkChD();
+};
+
+window.checkChD=function(){
+  const r=findResaById(detailId);
+  if(!r) return;
+  const ch=parseInt(document.getElementById('d-f-ch').value)||0;
+  if(!ch){document.getElementById('d-chw').style.display='none';return;}
+  const keys=nights(r.debut,r.fin);
+  let exc=false;
+  keys.forEach(k=>{ const o=chambresOccupees(k,detailId); if(o+ch>TOTAL)exc=true; });
+  document.getElementById('d-chw').style.display=exc?'block':'none';
+};
+
+window.closeDetail=function(){
+  document.getElementById('movD').classList.remove('open');
+  detailId=null; typeChoisiD=null;
+};
+window.closeIfOvD=function(e){ if(e.target===document.getElementById('movD')) closeDetail(); };
+
+window.submitDetailEdit=async function(){
+  const original=findResaById(detailId);
+  if(!original) return;
+  if(!typeChoisiD){toast('Choisissez un type de présence.');return;}
+  const nom=document.getElementById('d-f-nom').value.trim();
+  if(!nom){toast('Entrez le prénom.');return;}
+  const obj={
+    ...original,
+    type:typeChoisiD, nom,
+    chambres:document.getElementById('d-f-ch').value||'',
+    personnes:document.getElementById('d-f-pers').value||'',
+    note:document.getElementById('d-f-note').value.trim()
+  };
+  const ok=await saveResa(obj);
+  if(ok){ toast('✓ Réservation modifiée !'); closeDetail(); renderCal(); }
+};
+
+window.deleteDetail=async function(){
+  if(!detailId) return;
+  if(!confirm('Supprimer définitivement cette réservation ?')) return;
+  await window.delResa(detailId);
+  closeDetail();
 };
 
 // ── TOAST ──
